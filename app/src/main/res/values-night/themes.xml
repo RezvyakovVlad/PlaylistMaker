@@ -1,12 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.PlaylistMaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
+        <!-- Customize your dark theme here. -->
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/YP_Dark_Gray</item>
-        <item name="android:colorBackground">@color/YP_White</item>
+        <item name="android:colorBackground">@color/YP_Dark_Gray</item>
         <item name="android:iconTint">@color/YP_White</item>
-        <item name="colorOnBackground">@color/YP_Black</item>
+        <item name="colorOnBackground">@color/YP_White</item>
         <item name="colorPrimary">@color/YP_Dark_Gray</item>
         <item name="colorOnPrimary">@color/YP_White</item>
         <item name="colorOnPrimaryFixedVariant">@color/YP_White</item>
