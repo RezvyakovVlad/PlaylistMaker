@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="p_12">12dp</dimen>
+    <dimen name="h_p_16">16dp</dimen>
+    <dimen name="v_p_16">16dp</dimen>
+    <dimen name="i_p_12">12dp</dimen>
+    <dimen name="i_p_20">20dp</dimen>
+    <dimen name="fs_text_12">12sp</dimen>
+    <dimen name="fs_text_16">16sp</dimen>
+    <dimen name="fs_text_20">20sp</dimen>
+    <dimen name="fs_text_24">24sp</dimen>
+    <dimen name="m_height_60">60dp</dimen>
+    <dimen name="icp_12">12dp</dimen>
+    <dimen name="icp_16">16dp</dimen>
+    <dimen name="icp_24">24dp</dimen>
+</resources>
