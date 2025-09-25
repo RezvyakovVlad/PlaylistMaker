@@ -4,71 +4,39 @@
     android:id="@+id/activitySettings"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/YP_White"
+    android:background="?android:attr/colorBackground"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/settings"
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:text="@string/settings"
-        android:textColor="@color/YP_Black"
-        android:drawablePadding="20dp"
-        android:gravity="start|center_vertical"
-        android:textSize="@dimen/fs_text_24"
-        app:drawableStartCompat="@drawable/ic_arrow_back"/>
+        android:background="?android:attr/colorBackground"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:title="@string/c_tools"
+        app:titleTextAppearance="@style/ToolbarTitle" />
 
-    <TextView
-        android:id="@+id/theme_dark"
-        android:text="@string/theme_dark"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/m_height_60"
-        android:backgroundTint="@color/YP_White"
-        android:letterSpacing="0.00"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="@dimen/h_p_16"
-        android:textColor="@color/YP_Black"
-        android:textSize="@dimen/fs_text_16"
-        app:drawableEndCompat="@drawable/ic_control"/>
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/theme_switcher"
+        style="@style/SettingsItem"
+        android:text="@string/c_theme_dark"
+        android:theme="@style/DarkThemeSwitchTheme" />
 
     <TextView
         android:id="@+id/share_app"
-        android:text="@string/share"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/m_height_60"
-        android:backgroundTint="@color/YP_White"
-        android:letterSpacing="0.00"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="@dimen/h_p_16"
-        android:textColor="@color/YP_Black"
-        android:textSize="@dimen/fs_text_16"
-        app:drawableEndCompat="@drawable/ic_share"/>
+        style="@style/SettingsItem"
+        android:text="@string/c_share"
+        app:drawableEndCompat="@drawable/ic_share" />
 
     <TextView
         android:id="@+id/write_support"
-        android:text="@string/support"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/m_height_60"
-        android:backgroundTint="@color/YP_White"
-        android:letterSpacing="0.00"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="@dimen/h_p_16"
-        android:textColor="@color/YP_Black"
-        android:textSize="@dimen/fs_text_16"
-        android:drawablePadding="8dp"
-        app:drawableEndCompat="@drawable/ic_support"/>
+        style="@style/SettingsItem"
+        android:text="@string/c_w_support"
+        app:drawableEndCompat="@drawable/ic_support" />
 
     <TextView
         android:id="@+id/terms_of_use"
-        android:text="@string/lic"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/m_height_60"
-        android:backgroundTint="@color/YP_White"
-        android:letterSpacing="0.00"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="@dimen/h_p_16"
-        android:textColor="@color/YP_Black"
-        android:textSize="@dimen/fs_text_16"
-        android:drawablePadding="8dp"
-        app:drawableEndCompat="@drawable/ic_arrow_right"/>
+        style="@style/SettingsItem"
+        android:text="@string/c_lic"
+        app:drawableEndCompat="@drawable/ic_arrow_right" />
 </LinearLayout>

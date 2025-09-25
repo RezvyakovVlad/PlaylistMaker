@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="fw_100">100</integer>
+    <integer name="fw_400">400</integer>
+    <integer name="fw_500">500</integer>
+</resources>

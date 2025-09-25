@@ -13,4 +13,12 @@
     <dimen name="icp_12">12dp</dimen>
     <dimen name="icp_16">16dp</dimen>
     <dimen name="icp_24">24dp</dimen>
+    <dimen name="e_4">4dp</dimen>
+    <dimen name="margin_start">12dp</dimen>
+    <dimen name="margin_end">8dp</dimen>
+    <dimen name="margin_16">16dp</dimen>
+    <dimen name="margin_24">24dp</dimen>
+    <dimen name="margin_104">104dp</dimen>
+    <dimen name="image_size">46dp</dimen>
+    <dimen name="btn_corners_54">54dp</dimen>
 </resources>
