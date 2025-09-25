@@ -12,6 +12,7 @@
     <string name="activity_media">MediaActivity</string>
     <string name="theme_support">Сообщение разработчикам и разработчицам приложения Playlist Market</string>
     <string name="message_support">Спасибо разработчикам и разработчицам за крутое приложение!</string>
+    <string name="messege_practicum">Смотри какое крутое приложение я нашёл! Курс по Android-разработке в Практикуме:</string>
     <string name="terms_of_use">https://yandex.ru/legal/practicum_offer/</string>
     <string name="url_of_Practicum">https://practicum.yandex.ru/android-developer/</string>
     <string name="myEmail">rezvyakovvladislav@ya.ru</string>

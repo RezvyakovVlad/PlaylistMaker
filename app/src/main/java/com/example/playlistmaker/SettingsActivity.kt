@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.appbar.MaterialToolbar
+import android.content.ActivityNotFoundException
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -53,8 +54,9 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun shareApp() {
         try {
-            val shareMessage = getString(R.string.url_of_Practicum)
-            val shareText = "Смотри какое крутое приложение я нашёл! Курс по Android-разработке в Практикуме: $shareMessage"
+            val practicumUrl = getString(R.string.url_of_Practicum)
+            val messagePrefix = getString(R.string.messege_practicum)
+            val shareText = "$messagePrefix $practicumUrl"
 
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -109,15 +111,28 @@ class SettingsActivity : AppCompatActivity() {
     private fun openTermsOfUse() {
         try {
             val termsUrl = getString(R.string.terms_of_use)
-            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(termsUrl))
 
-            if (browserIntent.resolveActivity(packageManager) != null) {
+            if (termsUrl.isBlank()) {
+                showToast("Ссылка на соглашение не настроена")
+                return
+            }
+
+            val uri = Uri.parse(termsUrl)
+            val browserIntent = Intent(Intent.ACTION_VIEW, uri)
+
+            try {
                 startActivity(browserIntent)
-            } else {
-                showToast("Установите браузер для просмотра соглашения")
+            } catch (e: ActivityNotFoundException) {
+                // Если не получилось, показываем выбор браузера
+                val chooserIntent = Intent.createChooser(browserIntent, "Выберите браузер")
+                try {
+                    startActivity(chooserIntent)
+                } catch (e: ActivityNotFoundException) {
+                    showToast("Установите браузер для просмотра соглашения")
+                }
             }
         } catch (e: Exception) {
-            showToast("Ошибка при открытии браузера")
+            showToast("Ошибка при открытии соглашения")
         }
     }
 
