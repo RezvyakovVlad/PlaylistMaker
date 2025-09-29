@@ -8,6 +8,10 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 
 class SearchActivity : AppCompatActivity() {
@@ -15,6 +19,14 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var etSearch: EditText
     private lateinit var iwClear: ImageView
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var placeholderNothing: LinearLayout
+    private lateinit var placeholderNoConnection: LinearLayout
+    private lateinit var searchHistoryLayout: View
+    private lateinit var progressBar: ProgressBar
+
+    private lateinit var adapter: TrackAdapter
+    private val repository = TrackRepository()
 
     private var searchText: String = ""
 
@@ -27,12 +39,16 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         initViews()
+        setupRecyclerView()
         setupViews()
         setupClickListeners()
         setupTextWatcher()
+        setupClearHistoryButton()
 
         if (savedInstanceState != null) {
             restoreState(savedInstanceState)
+        } else {
+            loadMockTracks()
         }
     }
 
@@ -40,6 +56,24 @@ class SearchActivity : AppCompatActivity() {
         etSearch = findViewById(R.id.etSearch)
         iwClear = findViewById(R.id.iwClear)
         toolbar = findViewById(R.id.toolbar)
+        recyclerView = findViewById(R.id.recycler_view)
+        placeholderNothing = findViewById(R.id.placeholder_nothing)
+        placeholderNoConnection = findViewById(R.id.placeholder_no_connection)
+        searchHistoryLayout = findViewById(R.id.search_history_layout)
+        progressBar = findViewById(R.id.progress_bar)
+    }
+
+    private fun setupRecyclerView() {
+        adapter = TrackAdapter()
+        adapter.onItemClick = { track ->
+            println("Track clicked: ${track.trackName} by ${track.artistName}")
+        }
+
+        recyclerView.apply {
+            layoutManager = LinearLayoutManager(this@SearchActivity)
+            adapter = this@SearchActivity.adapter
+            setHasFixedSize(true)
+        }
     }
 
     private fun setupViews() {
@@ -56,6 +90,8 @@ class SearchActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+
+        hideAllPlaceholders()
     }
 
     private fun setupClickListeners() {
@@ -71,22 +107,125 @@ class SearchActivity : AppCompatActivity() {
                 false
             }
         }
+
+        findViewById<View>(R.id.update).setOnClickListener {
+            loadMockTracks()
+        }
     }
 
     private fun setupTextWatcher() {
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 searchText = s?.toString() ?: ""
                 updateClearButtonVisibility(s)
+
+                if (s.isNullOrEmpty()) {
+                    loadMockTracks()
+                } else {
+                    performSearch()
+                }
             }
 
             override fun afterTextChanged(s: Editable?) {
             }
         })
+    }
+
+    private fun setupClearHistoryButton() {
+        findViewById<android.widget.Button>(R.id.clear_history_button)?.setOnClickListener {
+            loadMockTracks()
+        }
+    }
+
+    private fun loadMockTracks() {
+        showLoading()
+
+        etSearch.postDelayed({
+            if (!isNetworkAvailable()) {
+                showNoConnection()
+                return@postDelayed
+            }
+
+            val tracks = repository.getMockTracks()
+            if (tracks.isEmpty()) {
+                showNothingFound()
+            } else {
+                showSearchResults(tracks)
+            }
+        }, 500)
+    }
+
+    private fun performSearch() {
+        val query = etSearch.text.toString().trim()
+        if (query.isNotEmpty()) {
+            hideKeyboard()
+            showLoading()
+
+            etSearch.postDelayed({
+                if (!isNetworkAvailable()) {
+                    showNoConnection()
+                    return@postDelayed
+                }
+
+                val filteredTracks = repository.searchTracks(query)
+                if (filteredTracks.isEmpty()) {
+                    showNothingFound()
+                } else {
+                    showSearchResults(filteredTracks)
+                }
+            }, 500)
+        } else {
+            loadMockTracks()
+        }
+    }
+
+    private fun showSearchResults(tracks: List<Track>) {
+        println("Showing ${tracks.size} tracks in search results")
+        tracks.take(3).forEachIndexed { index, track ->
+            println("Track $index: ${track.trackName} - ${track.artistName}")
+        }
+
+        adapter.submitList(tracks)
+        recyclerView.visibility = View.VISIBLE
+        placeholderNothing.visibility = View.GONE
+        placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
+        progressBar.visibility = View.GONE
+    }
+
+    private fun showNothingFound() {
+        recyclerView.visibility = View.GONE
+        placeholderNothing.visibility = View.VISIBLE
+        placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
+        progressBar.visibility = View.GONE
+    }
+
+    private fun showNoConnection() {
+        recyclerView.visibility = View.GONE
+        placeholderNothing.visibility = View.GONE
+        placeholderNoConnection.visibility = View.VISIBLE
+        searchHistoryLayout.visibility = View.GONE
+        progressBar.visibility = View.GONE
+    }
+
+    private fun showLoading() {
+        recyclerView.visibility = View.GONE
+        placeholderNothing.visibility = View.GONE
+        placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
+        progressBar.visibility = View.VISIBLE
+    }
+
+    private fun hideAllPlaceholders() {
+        recyclerView.visibility = View.GONE
+        placeholderNothing.visibility = View.GONE
+        placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
+        progressBar.visibility = View.GONE
     }
 
     private fun updateClearButtonVisibility(text: CharSequence?) {
@@ -102,18 +241,21 @@ class SearchActivity : AppCompatActivity() {
         searchText = ""
         hideKeyboard()
         etSearch.clearFocus()
-    }
-
-    private fun performSearch() {
-        val query = etSearch.text.toString().trim()
-        if (query.isNotEmpty()) {
-            hideKeyboard()
-        }
+        loadMockTracks()
     }
 
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.hideSoftInputFromWindow(etSearch.windowToken, 0)
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        return try {
+            val connectivityManager = getSystemService(android.net.ConnectivityManager::class.java)
+            connectivityManager.activeNetwork != null
+        } catch (e: Exception) {
+            false
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -132,11 +274,19 @@ class SearchActivity : AppCompatActivity() {
             etSearch.setText(savedSearchText)
             searchText = savedSearchText
             updateClearButtonVisibility(savedSearchText)
+            performSearch()
+        } else {
+            loadMockTracks()
         }
     }
 
     override fun onResume() {
         super.onResume()
         updateClearButtonVisibility(etSearch.text)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        hideKeyboard()
     }
 }

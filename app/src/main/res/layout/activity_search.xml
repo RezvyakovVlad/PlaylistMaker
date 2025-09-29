@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="10dp"
-    tools:context="SearchActivity">
+    tools:context=".SearchActivity">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -55,4 +55,110 @@
             android:visibility="gone" />
 
     </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/h_p_16" />
+
+        <LinearLayout
+            android:id="@+id/placeholder_nothing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                style="@style/NoConnectionImagePlaceholder"
+                android:src="@drawable/ic_placeholder_nothing" />
+
+            <TextView
+                style="@style/NoConnectionPlaceholder"
+                android:layout_marginTop="@dimen/margin_16"
+                android:text="@string/nothing_was_found" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/placeholder_no_connection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                style="@style/NoConnectionImagePlaceholder"
+                android:src="@drawable/ic_placeholder_noconnection" />
+
+            <TextView
+                style="@style/NoConnectionPlaceholder"
+                android:layout_marginTop="@dimen/margin_16"
+                android:text="@string/no_connection" />
+
+            <TextView
+                style="@style/NoConnectionPlaceholder"
+                android:layout_marginTop="@dimen/margin_24"
+                android:text="@string/download_failed" />
+
+            <Button
+                android:id="@+id/update"
+                style="@style/UpdateButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cornerRadius="@dimen/btn_corners_54" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <ScrollView
+        android:id="@+id/search_history_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="@dimen/margin_24"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/search_history_text"
+                style="@style/HistoryText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/your_history" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/search_history_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_24" />
+
+            <Button
+                android:id="@+id/clear_history_button"
+                style="@style/UpdateButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_16"
+                android:text="@string/clear_history" />
+        </LinearLayout>
+
+    </ScrollView>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="140dp"
+        android:indeterminateTint="@color/blue"
+        android:visibility="gone" />
+
 </LinearLayout>

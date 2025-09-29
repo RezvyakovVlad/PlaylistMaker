@@ -1,24 +1,20 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
     <style name="Theme.PlaylistMaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">@color/YP_Dark_Gray</item>
-        <item name="android:colorBackground">@color/YP_Dark_Gray</item>
-        <item name="android:iconTint">@color/YP_White</item>
-        <item name="colorOnBackground">@color/YP_White</item>
-        <item name="colorPrimary">@color/YP_Dark_Gray</item>
-        <item name="colorOnPrimary">@color/YP_White</item>
-        <item name="colorOnPrimaryFixedVariant">@color/YP_White</item>
-        <item name="colorSecondary">@color/YP_Dark_Gray</item>
-        <item name="colorOnSecondary">@color/YP_White</item>
-        <item name="colorControlActivated">@color/YP_Blue</item>
-        <item name="textAppearanceBodyMedium">@color/YP_White</item>
-        <item name="textAppearanceBodySmall">@color/YP_White</item>
-        <item name="textAppearanceBody1">@color/YP_White</item>
-        <item name="textAppearanceBody2">@color/YP_White</item>
-        <item name="buttonTint">@color/YP_White</item>
-
+        <item name="android:statusBarColor">@color/dark_gray</item>
+        <item name="android:colorBackground">@color/dark_gray</item>
+        <item name="android:iconTint">@color/white</item>
+        <item name="colorOnBackground">@color/white</item>
+        <item name="colorPrimary">@color/dark_gray</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorOnPrimaryFixedVariant">@color/white</item>
+        <item name="colorSecondary">@color/dark_gray</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorControlActivated">@color/blue</item>
+        <item name="textAppearanceBodyMedium">@color/white</item>
+        <item name="textAppearanceBodySmall">@color/white</item>
+        <item name="textAppearanceBody1">@color/white</item>
+        <item name="textAppearanceBody2">@color/white</item>
+        <item name="buttonTint">@color/white</item>
     </style>
-
 </resources>

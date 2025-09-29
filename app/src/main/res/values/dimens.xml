@@ -21,4 +21,5 @@
     <dimen name="margin_104">104dp</dimen>
     <dimen name="image_size">46dp</dimen>
     <dimen name="btn_corners_54">54dp</dimen>
+    <dimen name="corner_radius">8dp</dimen>
 </resources>
