@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">is1-ssl.mzstatic.com</domain>
+        <domain includeSubdomains="true">is5-ssl.mzstatic.com</domain>
+        <domain includeSubdomains="true">is2-ssl.mzstatic.com</domain>
+        <domain includeSubdomains="true">is4-ssl.mzstatic.com</domain>
+    </domain-config>
+</network-security-config>
