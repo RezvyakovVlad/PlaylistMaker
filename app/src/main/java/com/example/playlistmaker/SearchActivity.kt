@@ -41,8 +41,6 @@ class SearchActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
-        Log.d(TAG, "onCreate: Activity created")
-
         initViews()
         setupRecyclerView()
         setupViews()
@@ -67,13 +65,11 @@ class SearchActivity : AppCompatActivity() {
         searchHistoryLayout = findViewById(R.id.search_history_layout)
         progressBar = findViewById(R.id.progress_bar)
 
-        Log.d(TAG, "initViews: All views initialized")
     }
 
     private fun setupRecyclerView() {
         adapter = TrackAdapter()
         adapter.onItemClick = { track ->
-            Log.d(TAG, "Track clicked: ${track.trackName} by ${track.artistName}")
         }
 
         recyclerView.apply {
@@ -137,8 +133,6 @@ class SearchActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 searchText = s?.toString() ?: ""
                 updateClearButtonVisibility(s)
-
-                Log.d(TAG, "Text changed: '$s'")
 
                 if (s.isNullOrEmpty()) {
                     showEmptyState()
@@ -221,7 +215,6 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun showLoading() {
-        Log.d(TAG, "showLoading: Showing loading state")
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
@@ -230,7 +223,6 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun showEmptyState() {
-        Log.d(TAG, "showEmptyState: Showing empty state")
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
@@ -253,7 +245,6 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun clearSearchQuery() {
-        Log.d(TAG, "clearSearchQuery: Clearing search query")
         etSearch.setText("")
         searchText = ""
         hideKeyboard()
@@ -282,7 +273,6 @@ class SearchActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(SEARCH_TEXT_KEY, searchText)
-        Log.d(TAG, "onSaveInstanceState: Saved searchText = '$searchText'")
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -292,7 +282,6 @@ class SearchActivity : AppCompatActivity() {
 
     private fun restoreState(savedInstanceState: Bundle) {
         val savedSearchText = savedInstanceState.getString(SEARCH_TEXT_KEY, "")
-        Log.d(TAG, "restoreState: Restoring searchText = '$savedSearchText'")
 
         if (savedSearchText.isNotEmpty()) {
             etSearch.setText(savedSearchText)
@@ -307,12 +296,10 @@ class SearchActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateClearButtonVisibility(etSearch.text)
-        Log.d(TAG, "onResume: Activity resumed")
     }
 
     override fun onPause() {
         super.onPause()
         hideKeyboard()
-        Log.d(TAG, "onPause: Activity paused")
     }
 }
