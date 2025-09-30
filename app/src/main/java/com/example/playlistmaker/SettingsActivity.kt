@@ -123,7 +123,6 @@ class SettingsActivity : AppCompatActivity() {
             try {
                 startActivity(browserIntent)
             } catch (e: ActivityNotFoundException) {
-                // Если не получилось, показываем выбор браузера
                 val chooserIntent = Intent.createChooser(browserIntent, "Выберите браузер")
                 try {
                     startActivity(chooserIntent)

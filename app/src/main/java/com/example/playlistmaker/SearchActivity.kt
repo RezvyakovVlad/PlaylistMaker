@@ -1,5 +1,6 @@
 package com.example.playlistmaker
 
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
@@ -26,17 +27,21 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
 
     private lateinit var adapter: TrackAdapter
-    private val repository = TrackRepository()
-
+    private val networkClient = NetworkClient()
+    private val repository = TrackRepository(networkClient)
     private var searchText: String = ""
+    private var isSearchInProgress = false
 
     companion object {
         private const val SEARCH_TEXT_KEY = "SEARCH_TEXT_KEY"
+        private const val TAG = "SearchActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
+
+        Log.d(TAG, "onCreate: Activity created")
 
         initViews()
         setupRecyclerView()
@@ -48,7 +53,7 @@ class SearchActivity : AppCompatActivity() {
         if (savedInstanceState != null) {
             restoreState(savedInstanceState)
         } else {
-            loadMockTracks()
+            showEmptyState()
         }
     }
 
@@ -61,12 +66,14 @@ class SearchActivity : AppCompatActivity() {
         placeholderNoConnection = findViewById(R.id.placeholder_no_connection)
         searchHistoryLayout = findViewById(R.id.search_history_layout)
         progressBar = findViewById(R.id.progress_bar)
+
+        Log.d(TAG, "initViews: All views initialized")
     }
 
     private fun setupRecyclerView() {
         adapter = TrackAdapter()
         adapter.onItemClick = { track ->
-            println("Track clicked: ${track.trackName} by ${track.artistName}")
+            Log.d(TAG, "Track clicked: ${track.trackName} by ${track.artistName}")
         }
 
         recyclerView.apply {
@@ -74,6 +81,8 @@ class SearchActivity : AppCompatActivity() {
             adapter = this@SearchActivity.adapter
             setHasFixedSize(true)
         }
+
+        Log.d(TAG, "setupRecyclerView: RecyclerView configured")
     }
 
     private fun setupViews() {
@@ -88,19 +97,24 @@ class SearchActivity : AppCompatActivity() {
         iwClear.visibility = View.GONE
 
         toolbar.setNavigationOnClickListener {
+            Log.d(TAG, "Toolbar navigation clicked")
             onBackPressedDispatcher.onBackPressed()
         }
 
         hideAllPlaceholders()
+
+        Log.d(TAG, "setupViews: Views configured")
     }
 
     private fun setupClickListeners() {
         iwClear.setOnClickListener {
+            Log.d(TAG, "Clear button clicked")
             clearSearchQuery()
         }
 
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
+                Log.d(TAG, "Keyboard Done button pressed")
                 performSearch()
                 true
             } else {
@@ -109,83 +123,75 @@ class SearchActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.update).setOnClickListener {
-            loadMockTracks()
+            Log.d(TAG, "Update button clicked")
+            if (repository.getLastSearchQuery().isNotEmpty()) {
+                performSearch(repository.getLastSearchQuery())
+            }
         }
     }
 
     private fun setupTextWatcher() {
         etSearch.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 searchText = s?.toString() ?: ""
                 updateClearButtonVisibility(s)
 
+                Log.d(TAG, "Text changed: '$s'")
+
                 if (s.isNullOrEmpty()) {
-                    loadMockTracks()
-                } else {
+                    showEmptyState()
+                } else if (s.length >= 3) {
                     performSearch()
                 }
             }
 
-            override fun afterTextChanged(s: Editable?) {
-            }
+            override fun afterTextChanged(s: Editable?) {}
         })
     }
 
     private fun setupClearHistoryButton() {
         findViewById<android.widget.Button>(R.id.clear_history_button)?.setOnClickListener {
-            loadMockTracks()
+            Log.d(TAG, "Clear history button clicked")
+            showEmptyState()
         }
     }
 
-    private fun loadMockTracks() {
+    private fun performSearch(query: String? = null) {
+        val searchQuery = query ?: etSearch.text.toString().trim()
+        Log.d(TAG, "performSearch: Searching for '$searchQuery'")
+
+        if (searchQuery.isEmpty() || isSearchInProgress) return
+
+        hideKeyboard()
         showLoading()
+        isSearchInProgress = true
 
-        etSearch.postDelayed({
-            if (!isNetworkAvailable()) {
-                showNoConnection()
-                return@postDelayed
-            }
+        repository.searchTracks(
+            query = searchQuery,
+            onSuccess = { tracks ->
+                isSearchInProgress = false
+                Log.d(TAG, "performSearch: Found ${tracks.size} tracks for query '$searchQuery'")
 
-            val tracks = repository.getMockTracks()
-            if (tracks.isEmpty()) {
-                showNothingFound()
-            } else {
-                showSearchResults(tracks)
-            }
-        }, 500)
-    }
-
-    private fun performSearch() {
-        val query = etSearch.text.toString().trim()
-        if (query.isNotEmpty()) {
-            hideKeyboard()
-            showLoading()
-
-            etSearch.postDelayed({
-                if (!isNetworkAvailable()) {
-                    showNoConnection()
-                    return@postDelayed
-                }
-
-                val filteredTracks = repository.searchTracks(query)
-                if (filteredTracks.isEmpty()) {
+                if (tracks.isEmpty()) {
                     showNothingFound()
                 } else {
-                    showSearchResults(filteredTracks)
+                    showSearchResults(tracks)
                 }
-            }, 500)
-        } else {
-            loadMockTracks()
-        }
+            },
+            onError = { error ->
+                isSearchInProgress = false
+                Log.e(TAG, "performSearch: Search error: $error")
+                showNoConnection()
+            }
+        )
     }
 
     private fun showSearchResults(tracks: List<Track>) {
-        println("Showing ${tracks.size} tracks in search results")
+        Log.d(TAG, "showSearchResults: Displaying ${tracks.size} tracks")
         tracks.take(3).forEachIndexed { index, track ->
-            println("Track $index: ${track.trackName} - ${track.artistName}")
+            Log.d(TAG, "showSearchResults: Track $index - ${track.trackName} - ${track.artistName}")
         }
 
         adapter.submitList(tracks)
@@ -197,6 +203,7 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun showNothingFound() {
+        Log.d(TAG, "showNothingFound: No tracks found")
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.VISIBLE
         placeholderNoConnection.visibility = View.GONE
@@ -205,6 +212,7 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun showNoConnection() {
+        Log.w(TAG, "showNoConnection: Showing no connection placeholder")
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.VISIBLE
@@ -213,11 +221,21 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun showLoading() {
+        Log.d(TAG, "showLoading: Showing loading state")
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
         searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.VISIBLE
+    }
+
+    private fun showEmptyState() {
+        Log.d(TAG, "showEmptyState: Showing empty state")
+        recyclerView.visibility = View.GONE
+        placeholderNothing.visibility = View.GONE
+        placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.VISIBLE
+        progressBar.visibility = View.GONE
     }
 
     private fun hideAllPlaceholders() {
@@ -229,22 +247,22 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun updateClearButtonVisibility(text: CharSequence?) {
-        if (text.isNullOrEmpty()) {
-            iwClear.visibility = View.GONE
-        } else {
-            iwClear.visibility = View.VISIBLE
-        }
+        val isVisible = !text.isNullOrEmpty()
+        iwClear.visibility = if (isVisible) View.VISIBLE else View.GONE
+        Log.d(TAG, "updateClearButtonVisibility: Clear button visible = $isVisible")
     }
 
     private fun clearSearchQuery() {
+        Log.d(TAG, "clearSearchQuery: Clearing search query")
         etSearch.setText("")
         searchText = ""
         hideKeyboard()
         etSearch.clearFocus()
-        loadMockTracks()
+        showEmptyState()
     }
 
     private fun hideKeyboard() {
+        Log.d(TAG, "hideKeyboard: Hiding keyboard")
         val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.hideSoftInputFromWindow(etSearch.windowToken, 0)
     }
@@ -252,8 +270,11 @@ class SearchActivity : AppCompatActivity() {
     private fun isNetworkAvailable(): Boolean {
         return try {
             val connectivityManager = getSystemService(android.net.ConnectivityManager::class.java)
-            connectivityManager.activeNetwork != null
+            val isAvailable = connectivityManager.activeNetwork != null
+            Log.d(TAG, "isNetworkAvailable: Network available = $isAvailable")
+            isAvailable
         } catch (e: Exception) {
+            Log.e(TAG, "isNetworkAvailable: Error checking network", e)
             false
         }
     }
@@ -261,6 +282,7 @@ class SearchActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(SEARCH_TEXT_KEY, searchText)
+        Log.d(TAG, "onSaveInstanceState: Saved searchText = '$searchText'")
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -270,23 +292,27 @@ class SearchActivity : AppCompatActivity() {
 
     private fun restoreState(savedInstanceState: Bundle) {
         val savedSearchText = savedInstanceState.getString(SEARCH_TEXT_KEY, "")
+        Log.d(TAG, "restoreState: Restoring searchText = '$savedSearchText'")
+
         if (savedSearchText.isNotEmpty()) {
             etSearch.setText(savedSearchText)
             searchText = savedSearchText
             updateClearButtonVisibility(savedSearchText)
             performSearch()
         } else {
-            loadMockTracks()
+            showEmptyState()
         }
     }
 
     override fun onResume() {
         super.onResume()
         updateClearButtonVisibility(etSearch.text)
+        Log.d(TAG, "onResume: Activity resumed")
     }
 
     override fun onPause() {
         super.onPause()
         hideKeyboard()
+        Log.d(TAG, "onPause: Activity paused")
     }
 }
