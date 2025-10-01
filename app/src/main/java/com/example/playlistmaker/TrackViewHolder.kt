@@ -1,5 +1,6 @@
 package com.example.playlistmaker
 
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -18,23 +19,28 @@ class TrackViewHolder(
     private val tvTrackTime: TextView = itemView.findViewById(R.id.track_time)
 
     fun bind(track: Track) {
-        tvTrackName.text = track.trackName
-        tvArtistName.text = track.artistName
-        tvTrackTime.text = track.trackTime
+        tvTrackName.text = track.trackName ?: "Unknown Track"
+        tvArtistName.text = track.artistName ?: "Unknown Artist"
+        tvTrackTime.text = track.getFormattedTrackTime()
 
-        println("Binding track: ${track.trackName} by ${track.artistName}")
+        val cornerRadius = 8.dpToPx(itemView.context)
 
-        val cornerRadius = 4.dpToPx(itemView.context)
+        val imageUrl = track.artworkUrl100
+        if (!imageUrl.isNullOrEmpty()) {
 
-        Glide.with(itemView)
-            .load(track.artworkUrl100)
-            .apply(
-                RequestOptions()
-                    .transform(RoundedCorners(cornerRadius))
-                    .error(R.drawable.ic_placeholder)
-                    .placeholder(R.drawable.ic_placeholder)
-            )
-            .into(ivArtwork)
+            Glide.with(itemView)
+                .load(imageUrl)
+                .apply(
+                    RequestOptions()
+                        .transform(RoundedCorners(cornerRadius))
+                        .error(R.drawable.ic_placeholder)
+                        .placeholder(R.drawable.ic_placeholder)
+                )
+                .into(ivArtwork)
+        } else {
+
+            ivArtwork.setImageResource(R.drawable.ic_placeholder)
+        }
     }
 
     private fun Int.dpToPx(context: android.content.Context): Int {
