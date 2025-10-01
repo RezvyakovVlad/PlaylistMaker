@@ -8,14 +8,14 @@
         <item name="colorPrimary">@color/dark_gray</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorOnPrimaryFixedVariant">@color/white</item>
-        <item name="colorSecondary">@color/dark_gray</item>
+        <item name="colorSecondary">@color/YP_White</item>
         <item name="colorOnSecondary">@color/white</item>
         <item name="colorControlActivated">@color/blue</item>
         <item name="textAppearanceBodyMedium">@color/YP_Black</item>
         <item name="textAppearanceBodySmall">@color/white</item>
         <item name="textAppearanceBody1">@color/white</item>
-        <item name="textAppearanceBody2">@color/white</item>
-        <item name="buttonTint">@color/YP_White</item>
+        <item name="textAppearanceBody2">@color/YP_Black</item>
+        <item name="buttonTint">@color/YP_Black</item>
 
     </style>
 
