@@ -1,8 +1,6 @@
 package com.example.playlistmaker
 
 import android.content.SharedPreferences
-import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,6 +10,9 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
@@ -24,9 +25,11 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var placeholderNothing: LinearLayout
     private lateinit var placeholderNoConnection: LinearLayout
-    private lateinit var searchHistoryLayout: View
+    private lateinit var searchHistoryLayout: ScrollView // Изменили на ScrollView
     private lateinit var searchHistoryRecyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
+    private lateinit var clearHistoryButton: TextView
+    private lateinit var searchHistoryText: TextView
 
     private lateinit var searchAdapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
@@ -39,7 +42,6 @@ class SearchActivity : AppCompatActivity() {
 
     companion object {
         private const val SEARCH_TEXT_KEY = "SEARCH_TEXT_KEY"
-        private const val TAG = "SearchActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,70 +57,66 @@ class SearchActivity : AppCompatActivity() {
         setupViews()
         setupClickListeners()
         setupTextWatcher()
-        setupFocusListener()
 
         if (savedInstanceState != null) {
             restoreState(savedInstanceState)
         } else {
-            updateHistoryVisibility()
+            showInitialState()
         }
     }
 
     private fun initViews() {
-        etSearch = findViewById(R.id.etSearch)
-        iwClear = findViewById(R.id.iwClear)
-        toolbar = findViewById(R.id.toolbar)
-        recyclerView = findViewById(R.id.recycler_view)
-        placeholderNothing = findViewById(R.id.placeholder_nothing)
-        placeholderNoConnection = findViewById(R.id.placeholder_no_connection)
-        searchHistoryLayout = findViewById(R.id.search_history_layout)
-        searchHistoryRecyclerView = findViewById(R.id.search_history_recycler_view)
-        progressBar = findViewById(R.id.progress_bar)
+        try {
+            etSearch = findViewById(R.id.etSearch)
+            iwClear = findViewById(R.id.iwClear)
+            toolbar = findViewById(R.id.toolbar)
+            recyclerView = findViewById(R.id.recycler_view)
+            placeholderNothing = findViewById(R.id.placeholder_nothing)
+            placeholderNoConnection = findViewById(R.id.placeholder_no_connection)
+            searchHistoryLayout = findViewById(R.id.search_history_layout) // ScrollView
+            searchHistoryRecyclerView = findViewById(R.id.search_history_recycler_view)
+            progressBar = findViewById(R.id.progress_bar)
+            clearHistoryButton = findViewById(R.id.clear_history_button)
+            searchHistoryText = findViewById(R.id.search_history_text)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
     }
 
     private fun setupRecyclerView() {
         searchAdapter = TrackAdapter()
         searchAdapter.onItemClick = { track ->
             searchHistory.addTrack(track)
-
         }
 
         recyclerView.apply {
             layoutManager = LinearLayoutManager(this@SearchActivity)
             adapter = searchAdapter
-            setHasFixedSize(true)
         }
     }
 
     private fun setupHistoryRecyclerView() {
         historyAdapter = TrackAdapter()
         historyAdapter.onItemClick = { track ->
-            searchHistory.addTrack(track)
+            etSearch.setText(track.trackName)
+            performSearch(track.trackName)
         }
 
         searchHistoryRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@SearchActivity)
             adapter = historyAdapter
-            setHasFixedSize(true)
         }
-
-        loadSearchHistory()
     }
 
     private fun setupViews() {
-        etSearch.apply {
-            hint = getString(R.string.c_search)
-            maxLines = 1
-            imeOptions = EditorInfo.IME_ACTION_DONE
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            isSingleLine = true
-        }
-
         iwClear.visibility = View.GONE
 
         toolbar.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+            finish()
         }
+
+        searchHistoryText.text = getString(R.string.your_history)
 
         hideAllPlaceholders()
     }
@@ -138,15 +136,14 @@ class SearchActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.update).setOnClickListener {
-            if (repository.getLastSearchQuery().isNotEmpty()) {
-                performSearch(repository.getLastSearchQuery())
+            if (searchText.isNotEmpty()) {
+                performSearch(searchText)
             }
         }
 
-        findViewById<View>(R.id.clear_history_button).setOnClickListener {
+        clearHistoryButton.setOnClickListener {
             searchHistory.clearHistory()
-            loadSearchHistory()
-            updateHistoryVisibility()
+            showInitialState()
         }
     }
 
@@ -159,7 +156,11 @@ class SearchActivity : AppCompatActivity() {
                 updateClearButtonVisibility(s)
 
                 if (s.isNullOrEmpty()) {
-                    updateHistoryVisibility()
+                    showInitialState()
+                } else if (s.length >= 2) {
+                    performDebouncedSearch()
+                } else {
+                    hideAllPlaceholders()
                 }
             }
 
@@ -167,39 +168,52 @@ class SearchActivity : AppCompatActivity() {
         })
     }
 
-    private fun setupFocusListener() {
-        etSearch.setOnFocusChangeListener { _, hasFocus ->
-            updateHistoryVisibility()
+    private fun performDebouncedSearch() {
+        etSearch.removeCallbacks(searchRunnable)
+        etSearch.postDelayed(searchRunnable, 1000) // Увеличим задержку до 1 секунды
+    }
+
+    private val searchRunnable = Runnable {
+        performSearch()
+    }
+
+    private fun showInitialState() {
+        try {
+            val history = searchHistory.getHistory()
+            if (history.isNotEmpty()) {
+                showSearchHistory(history)
+            } else {
+                showEmptySearchState()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            showEmptySearchState()
         }
     }
 
-    private fun updateHistoryVisibility() {
-        val hasFocus = etSearch.hasFocus()
-        val isEmpty = etSearch.text.isNullOrEmpty()
-        val hasHistory = searchHistory.hasHistory()
-
-        if (hasFocus && isEmpty && hasHistory) {
-            showHistory()
-        } else {
-            hideHistory()
+    private fun showSearchHistory(history: List<Track>) {
+        try {
+            historyAdapter.submitList(history)
+            searchHistoryLayout.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+            placeholderNothing.visibility = View.GONE
+            placeholderNoConnection.visibility = View.GONE
+            progressBar.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    private fun loadSearchHistory() {
-        val history = searchHistory.getHistory()
-        historyAdapter.submitList(history)
-    }
-
-    private fun showHistory() {
-        searchHistoryLayout.visibility = View.VISIBLE
-        recyclerView.visibility = View.GONE
-        placeholderNothing.visibility = View.GONE
-        placeholderNoConnection.visibility = View.GONE
-        progressBar.visibility = View.GONE
-    }
-
-    private fun hideHistory() {
-        searchHistoryLayout.visibility = View.GONE
+    private fun showEmptySearchState() {
+        try {
+            searchHistoryLayout.visibility = View.GONE
+            recyclerView.visibility = View.GONE
+            placeholderNothing.visibility = View.GONE
+            placeholderNoConnection.visibility = View.GONE
+            progressBar.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun performSearch(query: String? = null) {
@@ -215,70 +229,87 @@ class SearchActivity : AppCompatActivity() {
             return
         }
 
-        repository.searchTracks(
-            query = searchQuery,
-            onSuccess = { tracks ->
-                isSearchInProgress = false
-                if (tracks.isEmpty()) {
-                    showNothingFound()
-                } else {
-                    showSearchResults(tracks)
+        try {
+            repository.searchTracks(
+                query = searchQuery,
+                onSuccess = { tracks ->
+                    isSearchInProgress = false
+                    searchHistoryLayout.visibility = View.GONE
+
+                    if (tracks.isEmpty()) {
+                        showNothingFound()
+                    } else {
+                        showSearchResults(tracks)
+                    }
+                },
+                onError = { error ->
+                    isSearchInProgress = false
+                    showNoConnection()
                 }
-            },
-            onError = { error ->
-                isSearchInProgress = false
-                showNoConnection()
-            }
-        )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            isSearchInProgress = false
+            showNoConnection()
+        }
     }
 
     private fun showSearchResults(tracks: List<Track>) {
-        searchAdapter.submitList(tracks)
-        recyclerView.visibility = View.VISIBLE
-        placeholderNothing.visibility = View.GONE
-        placeholderNoConnection.visibility = View.GONE
-        searchHistoryLayout.visibility = View.GONE
-        progressBar.visibility = View.GONE
+        try {
+            searchAdapter.submitList(tracks)
+            recyclerView.visibility = View.VISIBLE
+            placeholderNothing.visibility = View.GONE
+            placeholderNoConnection.visibility = View.GONE
+            progressBar.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun showNothingFound() {
-        recyclerView.visibility = View.GONE
-        placeholderNothing.visibility = View.VISIBLE
-        placeholderNoConnection.visibility = View.GONE
-        searchHistoryLayout.visibility = View.GONE
-        progressBar.visibility = View.GONE
+        try {
+            recyclerView.visibility = View.GONE
+            placeholderNothing.visibility = View.VISIBLE
+            placeholderNoConnection.visibility = View.GONE
+            progressBar.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun showNoConnection() {
-        recyclerView.visibility = View.GONE
-        placeholderNothing.visibility = View.GONE
-        placeholderNoConnection.visibility = View.VISIBLE
-        searchHistoryLayout.visibility = View.GONE
-        progressBar.visibility = View.GONE
+        try {
+            recyclerView.visibility = View.GONE
+            placeholderNothing.visibility = View.GONE
+            placeholderNoConnection.visibility = View.VISIBLE
+            progressBar.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun showLoading() {
-        recyclerView.visibility = View.GONE
-        placeholderNothing.visibility = View.GONE
-        placeholderNoConnection.visibility = View.GONE
-        searchHistoryLayout.visibility = View.GONE
-        progressBar.visibility = View.VISIBLE
-    }
-
-    private fun showEmptyState() {
-        recyclerView.visibility = View.GONE
-        placeholderNothing.visibility = View.GONE
-        placeholderNoConnection.visibility = View.GONE
-        searchHistoryLayout.visibility = View.GONE
-        progressBar.visibility = View.GONE
+        try {
+            recyclerView.visibility = View.GONE
+            placeholderNothing.visibility = View.GONE
+            placeholderNoConnection.visibility = View.GONE
+            searchHistoryLayout.visibility = View.GONE
+            progressBar.visibility = View.VISIBLE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun hideAllPlaceholders() {
-        recyclerView.visibility = View.GONE
-        placeholderNothing.visibility = View.GONE
-        placeholderNoConnection.visibility = View.GONE
-        searchHistoryLayout.visibility = View.GONE
-        progressBar.visibility = View.GONE
+        try {
+            recyclerView.visibility = View.GONE
+            placeholderNothing.visibility = View.GONE
+            placeholderNoConnection.visibility = View.GONE
+            searchHistoryLayout.visibility = View.GONE
+            progressBar.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun updateClearButtonVisibility(text: CharSequence?) {
@@ -290,13 +321,16 @@ class SearchActivity : AppCompatActivity() {
         etSearch.setText("")
         searchText = ""
         hideKeyboard()
-        etSearch.clearFocus()
-        updateHistoryVisibility()
+        showInitialState()
     }
 
     private fun hideKeyboard() {
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-        imm.hideSoftInputFromWindow(etSearch.windowToken, 0)
+        try {
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.hideSoftInputFromWindow(etSearch.windowToken, 0)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun isNetworkAvailable(): Boolean {
@@ -324,20 +358,23 @@ class SearchActivity : AppCompatActivity() {
             etSearch.setText(savedSearchText)
             searchText = savedSearchText
             updateClearButtonVisibility(savedSearchText)
+            performSearch(savedSearchText)
         } else {
-            updateHistoryVisibility()
+            showInitialState()
         }
     }
 
     override fun onResume() {
         super.onResume()
         updateClearButtonVisibility(etSearch.text)
-        loadSearchHistory()
-        updateHistoryVisibility()
+        if (etSearch.text.isNullOrEmpty()) {
+            showInitialState()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         hideKeyboard()
+        etSearch.removeCallbacks(searchRunnable)
     }
 }
