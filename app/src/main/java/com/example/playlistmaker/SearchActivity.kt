@@ -1,5 +1,6 @@
 package com.example.playlistmaker
 
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -23,11 +24,15 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var placeholderNothing: LinearLayout
     private lateinit var placeholderNoConnection: LinearLayout
+    private lateinit var searchHistoryLayout: View
+    private lateinit var searchHistoryRecyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
 
-    private lateinit var adapter: TrackAdapter
+    private lateinit var searchAdapter: TrackAdapter
+    private lateinit var historyAdapter: TrackAdapter
     private val networkClient = NetworkClient()
     private val repository = TrackRepository(networkClient)
+    private lateinit var searchHistory: SearchHistory
 
     private var searchText: String = ""
     private var isSearchInProgress = false
@@ -41,18 +46,21 @@ class SearchActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
-
+        val sharedPreferences = getSharedPreferences("playlist_maker", MODE_PRIVATE)
+        searchHistory = SearchHistory(sharedPreferences)
 
         initViews()
         setupRecyclerView()
+        setupHistoryRecyclerView()
         setupViews()
         setupClickListeners()
         setupTextWatcher()
+        setupFocusListener()
 
         if (savedInstanceState != null) {
             restoreState(savedInstanceState)
         } else {
-            showEmptyState()
+            updateHistoryVisibility()
         }
     }
 
@@ -63,20 +71,38 @@ class SearchActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recycler_view)
         placeholderNothing = findViewById(R.id.placeholder_nothing)
         placeholderNoConnection = findViewById(R.id.placeholder_no_connection)
+        searchHistoryLayout = findViewById(R.id.search_history_layout)
+        searchHistoryRecyclerView = findViewById(R.id.search_history_recycler_view)
         progressBar = findViewById(R.id.progress_bar)
     }
 
     private fun setupRecyclerView() {
-        adapter = TrackAdapter()
-        adapter.onItemClick = { track ->
+        searchAdapter = TrackAdapter()
+        searchAdapter.onItemClick = { track ->
+            searchHistory.addTrack(track)
+
         }
 
         recyclerView.apply {
             layoutManager = LinearLayoutManager(this@SearchActivity)
-            adapter = this@SearchActivity.adapter
+            adapter = searchAdapter
+            setHasFixedSize(true)
+        }
+    }
+
+    private fun setupHistoryRecyclerView() {
+        historyAdapter = TrackAdapter()
+        historyAdapter.onItemClick = { track ->
+            searchHistory.addTrack(track)
+        }
+
+        searchHistoryRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@SearchActivity)
+            adapter = historyAdapter
             setHasFixedSize(true)
         }
 
+        loadSearchHistory()
     }
 
     private fun setupViews() {
@@ -95,7 +121,6 @@ class SearchActivity : AppCompatActivity() {
         }
 
         hideAllPlaceholders()
-
     }
 
     private fun setupClickListeners() {
@@ -117,6 +142,12 @@ class SearchActivity : AppCompatActivity() {
                 performSearch(repository.getLastSearchQuery())
             }
         }
+
+        findViewById<View>(R.id.clear_history_button).setOnClickListener {
+            searchHistory.clearHistory()
+            loadSearchHistory()
+            updateHistoryVisibility()
+        }
     }
 
     private fun setupTextWatcher() {
@@ -127,9 +158,8 @@ class SearchActivity : AppCompatActivity() {
                 searchText = s?.toString() ?: ""
                 updateClearButtonVisibility(s)
 
-
                 if (s.isNullOrEmpty()) {
-                    showEmptyState()
+                    updateHistoryVisibility()
                 }
             }
 
@@ -137,9 +167,43 @@ class SearchActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupFocusListener() {
+        etSearch.setOnFocusChangeListener { _, hasFocus ->
+            updateHistoryVisibility()
+        }
+    }
+
+    private fun updateHistoryVisibility() {
+        val hasFocus = etSearch.hasFocus()
+        val isEmpty = etSearch.text.isNullOrEmpty()
+        val hasHistory = searchHistory.hasHistory()
+
+        if (hasFocus && isEmpty && hasHistory) {
+            showHistory()
+        } else {
+            hideHistory()
+        }
+    }
+
+    private fun loadSearchHistory() {
+        val history = searchHistory.getHistory()
+        historyAdapter.submitList(history)
+    }
+
+    private fun showHistory() {
+        searchHistoryLayout.visibility = View.VISIBLE
+        recyclerView.visibility = View.GONE
+        placeholderNothing.visibility = View.GONE
+        placeholderNoConnection.visibility = View.GONE
+        progressBar.visibility = View.GONE
+    }
+
+    private fun hideHistory() {
+        searchHistoryLayout.visibility = View.GONE
+    }
+
     private fun performSearch(query: String? = null) {
         val searchQuery = query ?: etSearch.text.toString().trim()
-
         if (searchQuery.isEmpty() || isSearchInProgress) return
 
         showLoading()
@@ -155,7 +219,6 @@ class SearchActivity : AppCompatActivity() {
             query = searchQuery,
             onSuccess = { tracks ->
                 isSearchInProgress = false
-
                 if (tracks.isEmpty()) {
                     showNothingFound()
                 } else {
@@ -170,11 +233,11 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun showSearchResults(tracks: List<Track>) {
-
-        adapter.submitList(tracks)
+        searchAdapter.submitList(tracks)
         recyclerView.visibility = View.VISIBLE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.GONE
     }
 
@@ -182,6 +245,7 @@ class SearchActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.VISIBLE
         placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.GONE
     }
 
@@ -189,6 +253,7 @@ class SearchActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.VISIBLE
+        searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.GONE
     }
 
@@ -196,6 +261,7 @@ class SearchActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.VISIBLE
     }
 
@@ -203,6 +269,7 @@ class SearchActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.GONE
     }
 
@@ -210,6 +277,7 @@ class SearchActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         placeholderNothing.visibility = View.GONE
         placeholderNoConnection.visibility = View.GONE
+        searchHistoryLayout.visibility = View.GONE
         progressBar.visibility = View.GONE
     }
 
@@ -223,7 +291,7 @@ class SearchActivity : AppCompatActivity() {
         searchText = ""
         hideKeyboard()
         etSearch.clearFocus()
-        showEmptyState()
+        updateHistoryVisibility()
     }
 
     private fun hideKeyboard() {
@@ -234,8 +302,7 @@ class SearchActivity : AppCompatActivity() {
     private fun isNetworkAvailable(): Boolean {
         return try {
             val connectivityManager = getSystemService(android.net.ConnectivityManager::class.java)
-            val isAvailable = connectivityManager.activeNetwork != null
-            isAvailable
+            connectivityManager.activeNetwork != null
         } catch (e: Exception) {
             false
         }
@@ -253,19 +320,20 @@ class SearchActivity : AppCompatActivity() {
 
     private fun restoreState(savedInstanceState: Bundle) {
         val savedSearchText = savedInstanceState.getString(SEARCH_TEXT_KEY, "")
-
         if (savedSearchText.isNotEmpty()) {
             etSearch.setText(savedSearchText)
             searchText = savedSearchText
             updateClearButtonVisibility(savedSearchText)
         } else {
-            showEmptyState()
+            updateHistoryVisibility()
         }
     }
 
     override fun onResume() {
         super.onResume()
         updateClearButtonVisibility(etSearch.text)
+        loadSearchHistory()
+        updateHistoryVisibility()
     }
 
     override fun onPause() {
