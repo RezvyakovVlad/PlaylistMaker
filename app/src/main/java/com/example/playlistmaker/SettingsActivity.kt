@@ -6,12 +6,15 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.MaterialToolbar
 import android.content.ActivityNotFoundException
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var themeSwitcher: SwitchCompat
     private lateinit var shareApp: TextView
     private lateinit var writeSupport: TextView
     private lateinit var termsOfUse: TextView
@@ -22,11 +25,13 @@ class SettingsActivity : AppCompatActivity() {
 
         initViews()
         setupToolbar()
+        setupThemeSwitcher()
         setupClickListeners()
     }
 
     private fun initViews() {
         toolbar = findViewById(R.id.toolbar)
+        themeSwitcher = findViewById(R.id.theme_switcher)
         shareApp = findViewById(R.id.share_app)
         writeSupport = findViewById(R.id.write_support)
         termsOfUse = findViewById(R.id.terms_of_use)
@@ -36,6 +41,37 @@ class SettingsActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+    }
+
+    private fun setupThemeSwitcher() {
+        val currentNightMode = AppCompatDelegate.getDefaultNightMode()
+        val isDarkTheme = when (currentNightMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> true
+            AppCompatDelegate.MODE_NIGHT_NO -> false
+            else -> {
+                val isSystemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                isSystemDark
+            }
+        }
+
+        themeSwitcher.isChecked = isDarkTheme
+
+        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+            toggleTheme(isChecked)
+        }
+    }
+
+    private fun toggleTheme(isDarkTheme: Boolean) {
+        val newMode = if (isDarkTheme) {
+            AppCompatDelegate.MODE_NIGHT_YES
+        } else {
+            AppCompatDelegate.MODE_NIGHT_NO
+        }
+
+        AppCompatDelegate.setDefaultNightMode(newMode)
+
+        val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
+        sharedPreferences.edit().putInt("NightMode", newMode).apply()
     }
 
     private fun setupClickListeners() {
