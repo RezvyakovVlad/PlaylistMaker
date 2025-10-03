@@ -3,7 +3,7 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/dark_gray</item>
         <item name="android:colorBackground">@color/white</item>
-        <item name="android:iconTint">@color/white</item>
+        <item name="android:iconTint">@color/YP_Dark_Gray</item>
         <item name="colorOnBackground">@color/black</item>
         <item name="colorPrimary">@color/dark_gray</item>
         <item name="colorOnPrimary">@color/white</item>

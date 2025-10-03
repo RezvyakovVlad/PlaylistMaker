@@ -1,5 +1,6 @@
 package com.example.playlistmaker
 
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Editable
@@ -25,7 +26,7 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var placeholderNothing: LinearLayout
     private lateinit var placeholderNoConnection: LinearLayout
-    private lateinit var searchHistoryLayout: ScrollView // Изменили на ScrollView
+    private lateinit var searchHistoryLayout: ScrollView
     private lateinit var searchHistoryRecyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var clearHistoryButton: TextView
@@ -73,7 +74,7 @@ class SearchActivity : AppCompatActivity() {
             recyclerView = findViewById(R.id.recycler_view)
             placeholderNothing = findViewById(R.id.placeholder_nothing)
             placeholderNoConnection = findViewById(R.id.placeholder_no_connection)
-            searchHistoryLayout = findViewById(R.id.search_history_layout) // ScrollView
+            searchHistoryLayout = findViewById(R.id.search_history_layout)
             searchHistoryRecyclerView = findViewById(R.id.search_history_recycler_view)
             progressBar = findViewById(R.id.progress_bar)
             clearHistoryButton = findViewById(R.id.clear_history_button)
@@ -88,6 +89,9 @@ class SearchActivity : AppCompatActivity() {
         searchAdapter = TrackAdapter()
         searchAdapter.onItemClick = { track ->
             searchHistory.addTrack(track)
+            val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
+            intent.putExtra("TRACK", track)
+            startActivity(intent)
         }
 
         recyclerView.apply {
@@ -99,8 +103,9 @@ class SearchActivity : AppCompatActivity() {
     private fun setupHistoryRecyclerView() {
         historyAdapter = TrackAdapter()
         historyAdapter.onItemClick = { track ->
-            etSearch.setText(track.trackName)
-            performSearch(track.trackName)
+            val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
+            intent.putExtra("TRACK", track)
+            startActivity(intent)
         }
 
         searchHistoryRecyclerView.apply {
@@ -170,7 +175,7 @@ class SearchActivity : AppCompatActivity() {
 
     private fun performDebouncedSearch() {
         etSearch.removeCallbacks(searchRunnable)
-        etSearch.postDelayed(searchRunnable, 1000) // Увеличим задержку до 1 секунды
+        etSearch.postDelayed(searchRunnable, 1000)
     }
 
     private val searchRunnable = Runnable {
