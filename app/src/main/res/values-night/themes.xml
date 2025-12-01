@@ -2,7 +2,7 @@
     <style name="Theme.PlaylistMaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/dark_gray</item>
-        <item name="android:colorBackground">@color/dark_gray</item>
+        <item name="android:colorBackground">@color/YP_Black</item>
         <item name="android:iconTint">@color/white</item>
         <item name="colorOnBackground">@color/white</item>
         <item name="colorPrimary">@color/dark_gray</item>
