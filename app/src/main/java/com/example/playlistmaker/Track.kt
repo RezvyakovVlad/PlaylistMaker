@@ -18,7 +18,7 @@ data class Track(
     @SerializedName("releaseDate") val releaseDate: String?,
     @SerializedName("primaryGenreName") val primaryGenreName: String?,
     @SerializedName("country") val country: String?,
-    @SerializedName("previewUrl") val previewUrl: String?
+    @SerializedName("previewUrl") val previewUrl: String? // Уже есть - отлично!
 ) : Serializable {
 
     fun getFormattedTrackTime(): String {
@@ -33,13 +33,14 @@ data class Track(
 
     fun getCoverArtwork(): String {
         return if (!artworkUrl100.isNullOrEmpty()) {
-            artworkUrl100.replaceAfterLast('/', "512x512bb.jpg")
+            artworkUrl100.replace("100x100bb", "512x512bb")
         } else {
             ""
         }
     }
+
     fun getReleaseYear(): String? {
-        return releaseDate?.take(4) // Берем только год из даты (первые 4 символа)
+        return releaseDate?.take(4)
     }
 
     fun getSafeTrackName(): String {
@@ -60,5 +61,17 @@ data class Track(
 
     fun getSafeCountry(): String {
         return country ?: "Не указано"
+    }
+
+    // ДОБАВЬТЕ ЭТОТ МЕТОД для задачи аудиоплеера
+    fun getSafePreviewUrl(): String {
+        return previewUrl ?: ""
+    }
+
+    // Дополнительный метод для форматирования времени воспроизведения
+    fun getFormattedPlaybackTime(milliseconds: Int): String {
+        val minutes = milliseconds / 1000 / 60
+        val seconds = (milliseconds / 1000) % 60
+        return String.format("%02d:%02d", minutes, seconds)
     }
 }

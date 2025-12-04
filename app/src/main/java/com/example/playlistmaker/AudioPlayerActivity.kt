@@ -1,6 +1,9 @@
 package com.example.playlistmaker
 
+import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
@@ -25,14 +28,27 @@ class AudioPlayerActivity : AppCompatActivity() {
     private lateinit var genreTrackInfo: TextView
     private lateinit var countryTrackInfo: TextView
 
+    private var mediaPlayer: MediaPlayer? = null
+    private var handler: Handler? = null
+    private var isPlaying = false
+    private var currentPosition = 0
+    private lateinit var track: Track
+
+    companion object {
+        private const val UPDATE_INTERVAL = 100L // Обновление каждые 100 мс
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_audio_player)
+
+        track = intent.getSerializableExtra("TRACK") as? Track ?: return
 
         initViews()
         setupToolbar()
         setupTrackData()
         setupClickListeners()
+        initMediaPlayer()
     }
 
     private fun initViews() {
@@ -53,19 +69,19 @@ class AudioPlayerActivity : AppCompatActivity() {
 
     private fun setupToolbar() {
         toolbar.setNavigationOnClickListener {
+            stopPlayback()
             onBackPressedDispatcher.onBackPressed()
         }
     }
 
     private fun setupTrackData() {
-        val track = intent.getSerializableExtra("TRACK") as? Track
-        track?.let {
+        track.let {
             if (!it.artworkUrl100.isNullOrEmpty()) {
                 Glide.with(this)
                     .load(it.getCoverArtwork())
                     .placeholder(R.drawable.ic_placeholder_312)
                     .error(R.drawable.ic_placeholder_312)
-                    .transform(RoundedCorners(resources.getDimensionPixelSize(R.dimen.corner_radius))) // Используйте dimension ресурс
+                    .transform(RoundedCorners(resources.getDimensionPixelSize(R.dimen.corner_radius)))
                     .into(placeholderTrack)
             } else {
                 placeholderTrack.setImageResource(R.drawable.ic_placeholder_312)
@@ -75,7 +91,7 @@ class AudioPlayerActivity : AppCompatActivity() {
             trackSinger.text = it.getSafeArtistName()
 
             val trackTime = it.getFormattedTrackTime()
-            timeTrack.text = trackTime
+            timeTrack.text = "00:00" // Начинаем с 00:00
             timeTrackInfo.text = trackTime
 
             albumTrackInfo.text = it.getSafeCollectionName()
@@ -85,14 +101,146 @@ class AudioPlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun initMediaPlayer() {
+        handler = Handler(Looper.getMainLooper())
+
+        val previewUrl = track.getSafePreviewUrl()
+        if (previewUrl.isNotEmpty()) {
+            try {
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(previewUrl)
+                    setOnPreparedListener {
+                        // Активируем кнопку воспроизведения после подготовки
+                        playTrack.isEnabled = true
+                    }
+                    setOnCompletionListener {
+                        // При завершении воспроизведения
+                        onPlaybackCompleted()
+                    }
+                    prepareAsync() // Асинхронная подготовка
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                playTrack.isEnabled = false
+            }
+        } else {
+            // Если нет previewUrl, отключаем кнопку воспроизведения
+            playTrack.isEnabled = false
+        }
+    }
+
     private fun setupClickListeners() {
         playTrack.setOnClickListener {
+            if (isPlaying) {
+                pausePlayback()
+            } else {
+                startPlayback()
+            }
         }
 
         addTrack.setOnClickListener {
+            // TODO: Implement add track functionality
         }
 
         favoriteTrack.setOnClickListener {
+            // TODO: Implement favorite functionality
         }
+    }
+
+    private fun startPlayback() {
+        mediaPlayer?.let { player ->
+            if (!player.isPlaying) {
+                // Если трек не играет, начинаем или продолжаем воспроизведение
+                player.seekTo(currentPosition)
+                player.start()
+                isPlaying = true
+                playTrack.setImageResource(R.drawable.ic_pause) // Меняем на иконку паузы
+                startProgressUpdates()
+            }
+        }
+    }
+
+    private fun pausePlayback() {
+        mediaPlayer?.let { player ->
+            if (player.isPlaying) {
+                player.pause()
+                currentPosition = player.currentPosition // Сохраняем позицию
+                isPlaying = false
+                playTrack.setImageResource(R.drawable.ic_play) // Меняем на иконку воспроизведения
+                stopProgressUpdates()
+            }
+        }
+    }
+
+    private fun stopPlayback() {
+        mediaPlayer?.let { player ->
+            if (player.isPlaying) {
+                player.stop()
+            }
+            player.reset()
+        }
+        isPlaying = false
+        currentPosition = 0
+        stopProgressUpdates()
+        timeTrack.text = "00:00" // Сбрасываем отображение времени
+    }
+
+    private fun onPlaybackCompleted() {
+        runOnUiThread {
+            isPlaying = false
+            currentPosition = 0
+            playTrack.setImageResource(R.drawable.ic_play) // Меняем на иконку воспроизведения
+            stopProgressUpdates()
+            timeTrack.text = "00:00" // Сбрасываем отображение времени
+        }
+    }
+
+    private fun startProgressUpdates() {
+        handler?.post(object : Runnable {
+            override fun run() {
+                updateProgress()
+                handler?.postDelayed(this, UPDATE_INTERVAL)
+            }
+        })
+    }
+
+    private fun stopProgressUpdates() {
+        handler?.removeCallbacksAndMessages(null)
+    }
+
+    private fun updateProgress() {
+        mediaPlayer?.let { player ->
+            if (player.isPlaying) {
+                val currentMs = player.currentPosition
+                updateProgressText(currentMs)
+            }
+        }
+    }
+
+    private fun updateProgressText(milliseconds: Int) {
+        val minutes = milliseconds / 1000 / 60
+        val seconds = (milliseconds / 1000) % 60
+        timeTrack.text = String.format("%02d:%02d", minutes, seconds)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isPlaying) {
+            pausePlayback() // Приостанавливаем воспроизведение при уходе в фон
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopPlayback()
+        stopProgressUpdates()
+        handler?.removeCallbacksAndMessages(null)
+        mediaPlayer?.release()
+        mediaPlayer = null
+    }
+
+    override fun onBackPressed() {
+        stopPlayback()
+        super.onBackPressed()
     }
 }
