@@ -1,6 +1,5 @@
 package com.example.playlistmaker
 
-import android.util.Log
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -9,42 +8,38 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class NetworkClient {
 
-    companion object {
-        private const val TAG = "NetworkClient"
-        private const val BASE_URL = "https://itunes.apple.com"
-    }
+    private val baseUrl = "https://itunes.apple.com"
 
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(baseUrl)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    private val itunesApi: ItunesApi = retrofit.create(ItunesApi::class.java)
+    private val itunesApi = retrofit.create(ItunesApi::class.java)
 
     fun searchTracks(
         query: String,
         onSuccess: (List<Track>) -> Unit,
         onError: (String) -> Unit
     ) {
-        Log.d(TAG, "Searching for: '$query'")
+        val call = itunesApi.search(query)
 
-        itunesApi.search(query).enqueue(object : Callback<SearchResponse> {
+        call.enqueue(object : Callback<SearchResponse> {
             override fun onResponse(call: Call<SearchResponse>, response: Response<SearchResponse>) {
                 if (response.isSuccessful) {
-                    val tracks = response.body()?.results ?: emptyList()
-                    Log.d(TAG, "Found ${tracks.size} tracks")
-                    onSuccess(tracks)
+                    val searchResponse = response.body()
+                    if (searchResponse != null && searchResponse.results.isNotEmpty()) {
+                        onSuccess(searchResponse.results)
+                    } else {
+                        onSuccess(emptyList())
+                    }
                 } else {
-                    val errorMsg = "Server error: ${response.code()}"
-                    Log.e(TAG, errorMsg)
-                    onError(errorMsg)
+                    onError("Ошибка сервера: ${response.code()}")
                 }
             }
 
             override fun onFailure(call: Call<SearchResponse>, t: Throwable) {
-                val errorMsg = "Network error: ${t.message}"
-                Log.e(TAG, errorMsg, t)
-                onError(errorMsg)
+                onError("Ошибка сети: ${t.message}")
             }
         })
     }

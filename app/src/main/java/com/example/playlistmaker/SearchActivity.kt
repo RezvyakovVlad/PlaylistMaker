@@ -19,10 +19,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 class SearchActivity : AppCompatActivity() {
 
@@ -46,16 +42,10 @@ class SearchActivity : AppCompatActivity() {
 
     private var searchText: String = ""
     private var isSearchInProgress = false
-    private var searchJob: Job? = null
-    private val coroutineScope = MainScope()
-
-    // Для debounce кликов
-    private var lastClickTime: Long = 0
-    private val clickDebounceDelay = 1000L // 1 секунда
-
-    // Для debounce поиска
-    private val searchDebounceDelay = 2000L // 2 секунды (по требованию задачи)
+    private var isClickAllowed = true
     private val handler = Handler(Looper.getMainLooper())
+    private val searchDebounceDelay = 2000L // 2 секунды для debounce
+    private val clickDebounceDelay = 1000L // 1 секунда для кликов
 
     companion object {
         private const val SEARCH_TEXT_KEY = "SEARCH_TEXT_KEY"
@@ -104,12 +94,11 @@ class SearchActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         searchAdapter = TrackAdapter()
         searchAdapter.onItemClick = { track ->
-            // Дебаунс для кликов
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime >= clickDebounceDelay) {
-                lastClickTime = currentTime
+            clickDebounce {
                 searchHistory.addTrack(track)
-                openAudioPlayer(track)
+                val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
+                intent.putExtra("TRACK", track)
+                startActivity(intent)
             }
         }
 
@@ -122,11 +111,10 @@ class SearchActivity : AppCompatActivity() {
     private fun setupHistoryRecyclerView() {
         historyAdapter = TrackAdapter()
         historyAdapter.onItemClick = { track ->
-            // Дебаунс для кликов
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime >= clickDebounceDelay) {
-                lastClickTime = currentTime
-                openAudioPlayer(track)
+            clickDebounce {
+                val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
+                intent.putExtra("TRACK", track)
+                startActivity(intent)
             }
         }
 
@@ -155,9 +143,6 @@ class SearchActivity : AppCompatActivity() {
 
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                // Отменяем отложенный поиск и выполняем немедленно
-                searchJob?.cancel()
-                handler.removeCallbacksAndMessages(null)
                 performSearch()
                 true
             } else {
@@ -167,16 +152,15 @@ class SearchActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.update).setOnClickListener {
             if (searchText.isNotEmpty()) {
-                // Отменяем отложенный поиск и выполняем немедленно
-                searchJob?.cancel()
-                handler.removeCallbacksAndMessages(null)
                 performSearch(searchText)
             }
         }
 
         clearHistoryButton.setOnClickListener {
-            searchHistory.clearHistory()
-            showInitialState()
+            clickDebounce {
+                searchHistory.clearHistory()
+                showInitialState()
+            }
         }
     }
 
@@ -189,15 +173,11 @@ class SearchActivity : AppCompatActivity() {
                 updateClearButtonVisibility(s)
 
                 if (s.isNullOrEmpty()) {
-                    // Отменяем поиск если поле пустое
-                    searchJob?.cancel()
                     handler.removeCallbacksAndMessages(null)
                     showInitialState()
                 } else if (s.length >= 2) {
-                    // Запускаем отложенный поиск с debounce 2000 мс
                     performDebouncedSearch()
                 } else {
-                    // Скрываем результаты если меньше 2 символов
                     hideAllPlaceholders()
                 }
             }
@@ -207,14 +187,19 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun performDebouncedSearch() {
-        // Отменяем предыдущий отложенный поиск
-        searchJob?.cancel()
         handler.removeCallbacksAndMessages(null)
-
-        // Создаем новый отложенный поиск с debounce 2000 мс
-        searchJob = coroutineScope.launch {
-            delay(searchDebounceDelay)
+        handler.postDelayed({
             performSearch()
+        }, searchDebounceDelay)
+    }
+
+    private fun clickDebounce(action: () -> Unit) {
+        if (isClickAllowed) {
+            isClickAllowed = false
+            action.invoke()
+            handler.postDelayed({
+                isClickAllowed = true
+            }, clickDebounceDelay)
         }
     }
 
@@ -274,30 +259,24 @@ class SearchActivity : AppCompatActivity() {
             repository.searchTracks(
                 query = searchQuery,
                 onSuccess = { tracks ->
-                    runOnUiThread {
-                        isSearchInProgress = false
-                        searchHistoryLayout.visibility = View.GONE
+                    isSearchInProgress = false
+                    searchHistoryLayout.visibility = View.GONE
 
-                        if (tracks.isEmpty()) {
-                            showNothingFound()
-                        } else {
-                            showSearchResults(tracks)
-                        }
+                    if (tracks.isEmpty()) {
+                        showNothingFound()
+                    } else {
+                        showSearchResults(tracks)
                     }
                 },
                 onError = { error ->
-                    runOnUiThread {
-                        isSearchInProgress = false
-                        showNoConnection()
-                    }
+                    isSearchInProgress = false
+                    showNoConnection()
                 }
             )
         } catch (e: Exception) {
             e.printStackTrace()
-            runOnUiThread {
-                isSearchInProgress = false
-                showNoConnection()
-            }
+            isSearchInProgress = false
+            showNoConnection()
         }
     }
 
@@ -371,12 +350,6 @@ class SearchActivity : AppCompatActivity() {
         showInitialState()
     }
 
-    private fun openAudioPlayer(track: Track) {
-        val intent = Intent(this, AudioPlayerActivity::class.java)
-        intent.putExtra("TRACK", track)
-        startActivity(intent)
-    }
-
     private fun hideKeyboard() {
         try {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
@@ -428,12 +401,6 @@ class SearchActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         hideKeyboard()
-        searchJob?.cancel()
-        handler.removeCallbacksAndMessages(null)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
         handler.removeCallbacksAndMessages(null)
     }
 }

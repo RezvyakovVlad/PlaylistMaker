@@ -3,11 +3,6 @@ package com.example.playlistmaker
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
-data class SearchResponse(
-    @SerializedName("resultCount") val resultCount: Int,
-    @SerializedName("results") val results: List<Track>
-)
-
 data class Track(
     @SerializedName("trackId") val trackId: Long?,
     @SerializedName("trackName") val trackName: String?,
@@ -18,7 +13,7 @@ data class Track(
     @SerializedName("releaseDate") val releaseDate: String?,
     @SerializedName("primaryGenreName") val primaryGenreName: String?,
     @SerializedName("country") val country: String?,
-    @SerializedName("previewUrl") val previewUrl: String? // Уже есть - отлично!
+    @SerializedName("previewUrl") val previewUrl: String?
 ) : Serializable {
 
     fun getFormattedTrackTime(): String {
@@ -33,7 +28,7 @@ data class Track(
 
     fun getCoverArtwork(): String {
         return if (!artworkUrl100.isNullOrEmpty()) {
-            artworkUrl100.replace("100x100bb", "512x512bb")
+            artworkUrl100.replaceAfterLast('/', "512x512bb.jpg")
         } else {
             ""
         }
@@ -63,15 +58,7 @@ data class Track(
         return country ?: "Не указано"
     }
 
-    // ДОБАВЬТЕ ЭТОТ МЕТОД для задачи аудиоплеера
     fun getSafePreviewUrl(): String {
         return previewUrl ?: ""
-    }
-
-    // Дополнительный метод для форматирования времени воспроизведения
-    fun getFormattedPlaybackTime(milliseconds: Int): String {
-        val minutes = milliseconds / 1000 / 60
-        val seconds = (milliseconds / 1000) % 60
-        return String.format("%02d:%02d", minutes, seconds)
     }
 }

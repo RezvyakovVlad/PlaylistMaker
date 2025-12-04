@@ -2,18 +2,30 @@ package com.example.playlistmaker
 
 class TrackRepository(private val networkClient: NetworkClient) {
 
-    // Существующий метод для обратной совместимости
+    private var lastSearchQuery: String = ""
+    private var lastSearchResults: List<Track> = emptyList()
+
     fun searchTracks(
         query: String,
         onSuccess: (List<Track>) -> Unit,
         onError: (String) -> Unit
     ) {
-        // ваша текущая реализация
+        if (query.isBlank()) {
+            onSuccess(emptyList())
+            return
+        }
+
+        lastSearchQuery = query
+        networkClient.searchTracks(query,
+            onSuccess = { tracks ->
+                lastSearchResults = tracks
+                onSuccess(tracks)
+            },
+            onError = onError
+        )
     }
 
-    // Новый метод для ViewModel (пока заглушка)
-    fun searchTracksSync(query: String): List<Track> {
-        // TODO: Реализовать позже
-        return emptyList()
-    }
+    fun getLastSearchQuery(): String = lastSearchQuery
+
+    fun getLastSearchResults(): List<Track> = lastSearchResults
 }
