@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.appbar.MaterialToolbar
-import java.text.SimpleDateFormat
 import java.util.Locale
 
 class AudioPlayerActivity : AppCompatActivity() {
@@ -90,10 +89,10 @@ class AudioPlayerActivity : AppCompatActivity() {
 
             trackName.text = it.getSafeTrackName()
             trackSinger.text = it.getSafeArtistName()
+            timeTrack.text = "00:00"
 
-            val trackTime = it.getFormattedTrackTime()
-            timeTrack.text = trackTime
-            timeTrackInfo.text = trackTime
+            val totalDuration = it.getFormattedTrackTime()
+            timeTrackInfo.text = totalDuration
 
             albumTrackInfo.text = it.getSafeCollectionName()
             yearTrackInfo.text = it.getReleaseYear() ?: "Не указано"
@@ -122,7 +121,7 @@ class AudioPlayerActivity : AppCompatActivity() {
                         updateProgress(currentPosition)
                     }
                 }
-                handler.postDelayed(this, 1000)
+                handler.postDelayed(this, 300)
             }
         }
     }
@@ -133,11 +132,9 @@ class AudioPlayerActivity : AppCompatActivity() {
         }
 
         addTrack.setOnClickListener {
-            // Логика добавления трека в плейлист
         }
 
         favoriteTrack.setOnClickListener {
-            // Логика добавления в избранное
         }
     }
 
@@ -189,14 +186,14 @@ class AudioPlayerActivity : AppCompatActivity() {
         mediaPlayer?.reset()
         playbackPosition = 0
         stopProgressUpdates()
-        updateProgress(0)
+        resetProgress()
         updatePlayButton(false)
     }
 
     private fun playbackCompleted() {
         playbackPosition = 0
         stopProgressUpdates()
-        updateProgress(0)
+        resetProgress()
         updatePlayButton(false)
     }
 
@@ -212,9 +209,18 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun updateProgress(position: Int) {
-        val formattedTime = SimpleDateFormat("mm:ss", Locale.getDefault())
-            .format(position)
-        timeTrackInfo.text = formattedTime
+        val formattedTime = formatMilliseconds(position)
+        timeTrack.text = formattedTime
+    }
+
+    private fun resetProgress() {
+        timeTrack.text = "00:00"
+    }
+
+    private fun formatMilliseconds(milliseconds: Int): String {
+        val seconds = (milliseconds / 1000) % 60
+        val minutes = (milliseconds / (1000 * 60)) % 60
+        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 
     private fun updatePlayButton(playing: Boolean) {

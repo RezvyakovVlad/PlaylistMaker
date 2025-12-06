@@ -10,7 +10,6 @@ class SearchViewModel : ViewModel() {
     val searchState: LiveData<SearchState> = _searchState
 
     fun searchDebounce(query: String) {
-        // Пока просто меняем состояние
         _searchState.value = SearchState.Loading
     }
 
