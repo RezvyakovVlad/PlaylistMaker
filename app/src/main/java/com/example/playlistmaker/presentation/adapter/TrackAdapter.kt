@@ -1,10 +1,11 @@
-package com.example.playlistmaker
+package com.example.playlistmaker.presentation.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.RecyclerView
+import com.example.playlistmaker.R
+import com.example.playlistmaker.domain.model.Track
 
 class TrackAdapter : ListAdapter<Track, TrackViewHolder>(TrackDiffCallback()) {
 
@@ -28,7 +29,7 @@ class TrackAdapter : ListAdapter<Track, TrackViewHolder>(TrackDiffCallback()) {
 
 class TrackDiffCallback : DiffUtil.ItemCallback<Track>() {
     override fun areItemsTheSame(oldItem: Track, newItem: Track): Boolean {
-        return oldItem.trackName == newItem.trackName && oldItem.artistName == newItem.artistName
+        return oldItem.trackId == newItem.trackId
     }
 
     override fun areContentsTheSame(oldItem: Track, newItem: Track): Boolean {

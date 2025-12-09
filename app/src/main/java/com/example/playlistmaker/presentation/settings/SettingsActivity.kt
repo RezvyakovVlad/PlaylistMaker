@@ -1,15 +1,17 @@
-package com.example.playlistmaker
+package com.example.playlistmaker.presentation.settings
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
+import com.example.playlistmaker.R
+import com.example.playlistmaker.presentation.Creator
 import com.google.android.material.appbar.MaterialToolbar
-import android.content.ActivityNotFoundException
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -18,6 +20,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var shareApp: TextView
     private lateinit var writeSupport: TextView
     private lateinit var termsOfUse: TextView
+
+    private val settingsInteractor by lazy { Creator.provideManageSettingsInteractor(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +53,8 @@ class SettingsActivity : AppCompatActivity() {
             AppCompatDelegate.MODE_NIGHT_YES -> true
             AppCompatDelegate.MODE_NIGHT_NO -> false
             else -> {
-                val isSystemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                val isSystemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                        android.content.res.Configuration.UI_MODE_NIGHT_YES
                 isSystemDark
             }
         }
@@ -62,30 +67,14 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun toggleTheme(isDarkTheme: Boolean) {
-        val newMode = if (isDarkTheme) {
-            AppCompatDelegate.MODE_NIGHT_YES
-        } else {
-            AppCompatDelegate.MODE_NIGHT_NO
-        }
-
+        val newMode = settingsInteractor.toggleTheme(isDarkTheme)
         AppCompatDelegate.setDefaultNightMode(newMode)
-
-        val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
-        sharedPreferences.edit().putInt("NightMode", newMode).apply()
     }
 
     private fun setupClickListeners() {
-        shareApp.setOnClickListener {
-            shareApp()
-        }
-
-        writeSupport.setOnClickListener {
-            writeToSupport()
-        }
-
-        termsOfUse.setOnClickListener {
-            openTermsOfUse()
-        }
+        shareApp.setOnClickListener { shareApp() }
+        writeSupport.setOnClickListener { writeToSupport() }
+        termsOfUse.setOnClickListener { openTermsOfUse() }
     }
 
     private fun shareApp() {
