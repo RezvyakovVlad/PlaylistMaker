@@ -3,6 +3,8 @@ package com.example.playlistmaker
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -40,6 +42,10 @@ class SearchActivity : AppCompatActivity() {
 
     private var searchText: String = ""
     private var isSearchInProgress = false
+    private var isClickAllowed = true
+    private val handler = Handler(Looper.getMainLooper())
+    private val searchDebounceDelay = 2000L // 2 секунды для debounce
+    private val clickDebounceDelay = 1000L // 1 секунда для кликов
 
     companion object {
         private const val SEARCH_TEXT_KEY = "SEARCH_TEXT_KEY"
@@ -88,10 +94,12 @@ class SearchActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         searchAdapter = TrackAdapter()
         searchAdapter.onItemClick = { track ->
-            searchHistory.addTrack(track)
-            val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
-            intent.putExtra("TRACK", track)
-            startActivity(intent)
+            clickDebounce {
+                searchHistory.addTrack(track)
+                val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
+                intent.putExtra("TRACK", track)
+                startActivity(intent)
+            }
         }
 
         recyclerView.apply {
@@ -103,9 +111,11 @@ class SearchActivity : AppCompatActivity() {
     private fun setupHistoryRecyclerView() {
         historyAdapter = TrackAdapter()
         historyAdapter.onItemClick = { track ->
-            val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
-            intent.putExtra("TRACK", track)
-            startActivity(intent)
+            clickDebounce {
+                val intent = Intent(this@SearchActivity, AudioPlayerActivity::class.java)
+                intent.putExtra("TRACK", track)
+                startActivity(intent)
+            }
         }
 
         searchHistoryRecyclerView.apply {
@@ -147,8 +157,10 @@ class SearchActivity : AppCompatActivity() {
         }
 
         clearHistoryButton.setOnClickListener {
-            searchHistory.clearHistory()
-            showInitialState()
+            clickDebounce {
+                searchHistory.clearHistory()
+                showInitialState()
+            }
         }
     }
 
@@ -161,6 +173,7 @@ class SearchActivity : AppCompatActivity() {
                 updateClearButtonVisibility(s)
 
                 if (s.isNullOrEmpty()) {
+                    handler.removeCallbacksAndMessages(null)
                     showInitialState()
                 } else if (s.length >= 2) {
                     performDebouncedSearch()
@@ -174,12 +187,20 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun performDebouncedSearch() {
-        etSearch.removeCallbacks(searchRunnable)
-        etSearch.postDelayed(searchRunnable, 1000)
+        handler.removeCallbacksAndMessages(null)
+        handler.postDelayed({
+            performSearch()
+        }, searchDebounceDelay)
     }
 
-    private val searchRunnable = Runnable {
-        performSearch()
+    private fun clickDebounce(action: () -> Unit) {
+        if (isClickAllowed) {
+            isClickAllowed = false
+            action.invoke()
+            handler.postDelayed({
+                isClickAllowed = true
+            }, clickDebounceDelay)
+        }
     }
 
     private fun showInitialState() {
@@ -380,6 +401,6 @@ class SearchActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         hideKeyboard()
-        etSearch.removeCallbacks(searchRunnable)
+        handler.removeCallbacksAndMessages(null)
     }
 }

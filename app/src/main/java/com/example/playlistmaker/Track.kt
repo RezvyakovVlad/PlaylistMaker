@@ -3,11 +3,6 @@ package com.example.playlistmaker
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
-data class SearchResponse(
-    @SerializedName("resultCount") val resultCount: Int,
-    @SerializedName("results") val results: List<Track>
-)
-
 data class Track(
     @SerializedName("trackId") val trackId: Long?,
     @SerializedName("trackName") val trackName: String?,
@@ -38,8 +33,9 @@ data class Track(
             ""
         }
     }
+
     fun getReleaseYear(): String? {
-        return releaseDate?.take(4) // Берем только год из даты (первые 4 символа)
+        return releaseDate?.take(4)
     }
 
     fun getSafeTrackName(): String {
@@ -60,5 +56,9 @@ data class Track(
 
     fun getSafeCountry(): String {
         return country ?: "Не указано"
+    }
+
+    fun getSafePreviewUrl(): String {
+        return previewUrl ?: ""
     }
 }
