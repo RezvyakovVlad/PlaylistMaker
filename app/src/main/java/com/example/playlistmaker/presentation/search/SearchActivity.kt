@@ -12,10 +12,8 @@ class SearchActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
-
-        // Создаем ViewModel без Creator
+        
         viewModel = ViewModelProvider(this).get(SearchViewModel::class.java)
 
-        // Простая Activity без сложной логики
     }
 }

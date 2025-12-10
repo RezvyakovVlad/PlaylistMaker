@@ -15,22 +15,31 @@ import com.example.playlistmaker.presentation.search.SearchViewModel
 
 object Creator {
 
+    private var networkClient: NetworkClient? = null
+    private var trackRepository: TrackRepository? = null
+    private var searchHistoryRepository: SearchHistoryRepository? = null
+    private var settingsRepository: SettingsRepository? = null
+
+    fun provideNetworkClient(context: Context): NetworkClient {
+        return networkClient ?: NetworkClient(context).also { networkClient = it }
+    }
+
     fun provideTrackRepository(context: Context): TrackRepository {
-        return TrackRepositoryImpl(
-            NetworkClient(context)
-        )
+        return trackRepository ?: TrackRepositoryImpl(
+            provideNetworkClient(context)
+        ).also { trackRepository = it }
     }
 
     fun provideSearchHistoryRepository(context: Context): SearchHistoryRepository {
-        return SearchHistoryRepositoryImpl(
+        return searchHistoryRepository ?: SearchHistoryRepositoryImpl(
             context.getSharedPreferences("playlist_maker", Context.MODE_PRIVATE)
-        )
+        ).also { searchHistoryRepository = it }
     }
 
     fun provideSettingsRepository(context: Context): SettingsRepository {
-        return SettingsRepositoryImpl(
+        return settingsRepository ?: SettingsRepositoryImpl(
             context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        )
+        ).also { settingsRepository = it }
     }
 
     fun provideSearchTracksInteractor(context: Context): SearchTracksInteractor {
@@ -51,8 +60,9 @@ object Creator {
         )
     }
 
-    // ИЗМЕНИЛИ ЭТУ ФУНКЦИЮ - убрали параметр
-    fun provideSearchViewModel(): SearchViewModel {
-        return SearchViewModel()  // Без параметров
+    fun provideSearchViewModel(context: Context): SearchViewModel {
+        return SearchViewModel(
+            provideSearchTracksInteractor(context)
+        )
     }
 }

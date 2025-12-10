@@ -3,9 +3,14 @@ package com.example.playlistmaker.presentation.search
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.playlistmaker.domain.interactor.SearchTracksInteractor
 import com.example.playlistmaker.domain.model.Track
+import kotlinx.coroutines.launch
 
-class SearchViewModel : ViewModel() {  // Конструктор без параметров
+class SearchViewModel(
+    private val searchInteractor: SearchTracksInteractor
+) : ViewModel() {
 
     private val _searchState = MutableLiveData<SearchState>()
     val searchState: LiveData<SearchState> = _searchState
@@ -18,8 +23,18 @@ class SearchViewModel : ViewModel() {  // Конструктор без пара
 
         _searchState.value = SearchState.Loading
 
-        // Временная заглушка
-        _searchState.value = SearchState.Success(emptyList())
+        viewModelScope.launch {
+            try {
+                val tracks = searchInteractor.execute(query)
+                if (tracks.isEmpty()) {
+                    _searchState.value = SearchState.Empty
+                } else {
+                    _searchState.value = SearchState.Success(tracks)
+                }
+            } catch (e: Exception) {
+                _searchState.value = SearchState.Error(e.message ?: "Unknown error")
+            }
+        }
     }
 
     fun clearSearch() {
