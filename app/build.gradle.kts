@@ -2,17 +2,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-parcelize")
-    id("kotlin-kapt")
 }
 
 android {
     namespace = "com.example.playlistmaker"
-    compileSdk = 36
+    compileSdk = 32
 
     defaultConfig {
         applicationId = "com.example.playlistmaker"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
 
@@ -44,29 +43,27 @@ android {
 }
 
 dependencies {
-    // Core
+    // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.activity)
 
-    // ViewModel & LiveData
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    // Lifecycle components (БЕЗ viewModelScope пока)
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-livedata:2.6.2")
 
     // Network
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation("com.google.code.gson:gson:2.10.1")
 
     // Image Loading
     implementation(libs.glide)
     annotationProcessor(libs.compiler)
+
+    // Gson
+    implementation(libs.gson)
 
     // Testing
     testImplementation(libs.junit)

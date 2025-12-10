@@ -4,10 +4,9 @@ import com.example.playlistmaker.domain.model.Track
 import com.example.playlistmaker.domain.repository.TrackRepository
 
 class SearchTracksInteractor(private val repository: TrackRepository) {
-    suspend fun execute(query: String): List<Track> {
-        val tracks = repository.searchTracks(query)
-        return tracks.filter { track ->
-            track.trackName.isNotEmpty() && track.artistName.isNotEmpty()
-        }
+    fun execute(query: String): List<Track> {
+        // Используем query для чего-то
+        println("Searching for: $query")  // Добавили использование query
+        return emptyList()
     }
 }
